@@ -273,6 +273,83 @@ function parseNutrition(text) {
   return result;
 }
 
+/* ============================================================
+   NORMALISASI ANGKA — aturan baru:
+   - "1.000"  → 1000   (titik = pemisah ribuan)
+   - "1,000"  → 1.0    (koma = desimal)
+   - "1.5"    → 1.5    (titik = desimal karena hanya 1 digit)
+   - "1.25"   → 1.25   (titik = desimal karena 2 digit)
+   - "1.234"  → 1234   (titik = ribuan karena 3 digit)
+   - "1.234,5"→ 1234.5 (format Indonesia)
+   - "1,234.5"→ 1234.5 (format Inggris)
+   ============================================================ */
+function normalizeNumberString(raw) {
+  // Pisahkan berdasarkan ada/tidaknya koma dan titik
+  const hasComma = raw.includes(',');
+  const hasDot = raw.includes('.');
+
+  if (hasComma && hasDot) {
+    // Keduanya ada: tentukan mana desimal, mana ribuan
+    const lastComma = raw.lastIndexOf(',');
+    const lastDot = raw.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // Format Indonesia: 1.234,5 → titik ribuan, koma desimal
+      return raw.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Format Inggris: 1,234.5 → koma ribuan, titik desimal
+      return raw.replace(/,/g, '');
+    }
+  }
+
+  if (hasComma && !hasDot) {
+    // Hanya koma
+    const parts = raw.split(',');
+    if (parts.length === 2) {
+      const decimals = parts[1];
+      if (decimals.length === 3 && parts[0].length <= 3 && /^\d+$/.test(parts[0])) {
+        // Kasus ambigu: "1,000" → bisa 1.0 atau 1000
+        // Sesuai permintaan: koma = desimal → 1.000 = 1
+        // Tapi kalau angkanya besar seperti "12,500" → 12.5 (desimal)
+        // Kita ikuti aturan: koma SELALU desimal
+        return parts[0] + '.' + decimals;
+      }
+      // "660,84" → 660.84
+      return parts[0] + '.' + decimals;
+    }
+    // Lebih dari satu koma → hapus semua, anggap ribuan
+    return raw.replace(/,/g, '');
+  }
+
+  if (hasDot && !hasComma) {
+    // Hanya titik
+    const parts = raw.split('.');
+    if (parts.length === 2) {
+      const decimals = parts[1];
+      if (decimals.length === 3 && parts[0].length <= 3 && /^\d+$/.test(parts[0])) {
+        // "1.000" → 1000 (titik = ribuan)
+        // "12.500" → 12500 (titik = ribuan)
+        return parts[0] + decimals;
+      }
+      // "1.5" → 1.5, "12.25" → 12.25 (titik = desimal)
+      return raw;
+    }
+    if (parts.length > 2) {
+      // "1.234.567" → 1234567 (semua titik = ribuan)
+      // Kecuali kalau bagian terakhir bukan 3 digit → itu desimal
+      const last = parts[parts.length - 1];
+      if (last.length !== 3) {
+        const intPart = parts.slice(0, -1).join('');
+        return intPart + '.' + last;
+      }
+      return parts.join('');
+    }
+    return raw;
+  }
+
+  // Tidak ada pemisah
+  return raw;
+}
+
 /**
  * Ambil nilai kandungan aktual dari baris.
  *
@@ -292,46 +369,52 @@ function parseNutrition(text) {
  */
 function extractActualValue(line, nutrient) {
   // Normalisasi: koma desimal → titik, titik ribuan dibuang
-  let s = line
-    .replace(/(\d),(\d)/g, '$1.$2')          // 660,84 → 660.84
-    .replace(/(\d)\.(?=\d{3}(?:\D|$))/g, '$1'); // 2.400 → 2400
+  // PERBAIKAN: gunakan fungsi normalizeNumberString
+  let s = line;
 
-  // Ambil semua angka (sebagai string mentah dulu, supaya bisa cek prefix)
-  const rawNumbers = s.match(/\d+(?:\.\d+)?/g);
-  if (!rawNumbers || rawNumbers.length === 0) return null;
+  // Cari semua "kandidat angka" dalam string (termasuk yang mengandung , dan .)
+  // Pola: deret digit yang mungkin mengandung , atau . di dalamnya
+  const numberPattern = /\d[\d.,]*\d|\d/g;
+  const rawMatches = s.match(numberPattern) || [];
+
+  if (rawMatches.length === 0) return null;
+
+  // Normalisasi setiap angka
+  const normalized = rawMatches.map(raw => {
+    const norm = normalizeNumberString(raw);
+    const val = parseFloat(norm);
+    return { raw, norm, val, isNaN: isNaN(val) };
+  }).filter(x => !x.isNaN && x.val > 0);
+
+  if (normalized.length === 0) return null;
 
   // Kumpulan kandidat nilai kebutuhan (patokan)
   const candidates = [nutrient.kebutuhan, ...(nutrient.alt || [])]
     .filter(v => v != null)
-    .sort((a, b) => String(b).length - String(a).length); // coba yang paling panjang dulu
+    .sort((a, b) => String(b).length - String(a).length);
 
-  // Strategi 1: cari angka yang diawali nilai kebutuhan
-  for (const raw of rawNumbers) {
-    // Buang titik desimal dulu untuk cek prefix
-    const integerPart = raw.split('.')[0];
+  // Strategi 1: cari angka yang diawali nilai kebutuhan (prefix)
+  for (const item of normalized) {
+    const intPart = item.norm.split('.')[0];
     for (const k of candidates) {
       const kStr = String(k);
-      if (integerPart.startsWith(kStr) && integerPart.length > kStr.length) {
-        // Sisanya adalah kandungan aktual
-        const rest = integerPart.slice(kStr.length);
-        // Gabung dengan bagian desimal jika ada
-        const decimalPart = raw.includes('.') ? '.' + raw.split('.')[1] : '';
+      if (intPart.startsWith(kStr) && intPart.length > kStr.length) {
+        const rest = intPart.slice(kStr.length);
+        const decimalPart = item.norm.includes('.') ? '.' + item.norm.split('.')[1] : '';
         const val = parseFloat(rest + decimalPart);
         if (!isNaN(val) && val > 0) return val;
       }
     }
   }
 
-  // Strategi 2: cari dua angka terpisah di baris (jika ada)
-  // misal: "Energi (kcal) 2400 660,84"
-  if (rawNumbers.length >= 2) {
-    // Ambil angka kedua sebagai kandidat
-    const second = parseFloat(rawNumbers[1]);
+  // Strategi 2: cari dua angka terpisah di baris
+  if (normalized.length >= 2) {
+    const second = normalized[1].val;
     if (!isNaN(second) && second > 0) return second;
   }
 
   // Strategi 3: fallback → ambil angka pertama yang > 0
-  const first = parseFloat(rawNumbers[0]);
+  const first = normalized[0].val;
   if (!isNaN(first) && first > 0) return first;
 
   return null;
