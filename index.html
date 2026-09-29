@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rata-rata Kandungan Gizi dari PDF</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f4f8;
+    color: #1e293b;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; color: #0f172a; }
+  .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
+
+  .upload-area {
+    background: #fff;
+    border: 2px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+  .upload-area input { display: none; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .upload-area p { color: #475569; font-size: 0.95rem; }
+  .upload-area .small { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+
+  .file-list {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .file-list h2 { font-size: 1rem; margin-bottom: 10px; color: #334155; }
+  .file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.88rem;
+  }
+  .file-item .name { color: #1e293b; word-break: break-all; }
+  .file-item .status { font-size: 0.78rem; padding: 2px 8px; border-radius: 99px; white-space: nowrap; margin-left: 8px; }
+  .status.ok { background: #dcfce7; color: #166534; }
+  .status.err { background: #fee2e2; color: #991b1b; }
+  .status.load { background: #fef9c3; color: #854d0e; }
+  .remove-btn {
+    background: none; border: none; color: #ef4444; cursor: pointer;
+    font-size: 1.1rem; padding: 0 6px; line-height: 1;
+  }
+
+  .actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+  .btn-secondary { background: #e2e8f0; color: #334155; }
+  .btn-secondary:hover { background: #cbd5e1; }
+
+  .results {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: none;
+  }
+  .results.show { display: block; }
+  .results h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .results .count-info { font-size: 0.82rem; color: #64748b; margin-bottom: 16px; }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .result-card {
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .result-card .label { font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .result-card .value { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 4px; }
+  .result-card .unit { font-size: 0.85rem; color: #64748b; font-weight: 400; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  th { background: #f8fafc; color: #475569; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .file-header { background: #f1f5f9; font-weight: 600; }
+
+  .empty-warn { color: #b45309; background: #fffbeb; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; }
+  .error-box { color: #991b1b; background: #fef2f2; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📊 Rata-rata Kandungan Gizi dari PDF</h1>
+  <p class="subtitle">Semua proses berjalan lokal di browser — file tidak diunggah ke server mana pun.</p>
+
+  <div class="upload-area" id="dropZone">
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+    <div class="upload-icon">📄</div>
+    <p><strong>Klik</strong> atau <strong>tarik & lepas</strong> file PDF di sini</p>
+    <p class="small">Bisa pilih banyak file sekaligus (batch)</p>
+  </div>
+
+  <div class="file-list" id="fileList" style="display:none;">
+    <h2>File yang diupload</h2>
+    <div id="fileItems"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="processBtn" disabled>⚙️ Proses & Hitung Rata-rata</button>
+    <button class="btn-secondary" id="clearBtn">🗑️ Bersihkan</button>
+  </div>
+
+  <div class="results" id="results">
+    <h2>Hasil Rata-rata Kandungan Gizi</h2>
+    <p class="count-info" id="countInfo"></p>
+    <div id="errorContainer"></div>
+    <div class="result-grid" id="resultGrid"></div>
+    <h2 style="font-size:1rem; margin-bottom:10px;">Rincian per File</h2>
+    <div style="overflow-x:auto;">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th class="num">Energi (kcal)</th>
+            <th class="num">Protein (g)</th>
+            <th class="num">Lemak (g)</th>
+            <th class="num">KH (g)</th>
+            <th class="num">Vit C (mg)</th>
+          </tr>
+        </thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const NUTRIENTS = [
+  { key: 'energi',  label: 'Energi',  unit: 'kcal', patterns: [/energi/i, /energy/i] },
+  { key: 'protein', label: 'Protein', unit: 'g',    patterns: [/protein/i] },
+  { key: 'lemak',   label: 'Lemak',   unit: 'g',    patterns: [/lemak/i, /fat/i] },
+  { key: 'kh',      label: 'KH',      unit: 'g',    patterns: [/^kh$/i, /karbohidrat/i, /carbohydrate/i] },
+  { key: 'vitc',    label: 'Vit C',   unit: 'mg',   patterns: [/vit\s*c/i, /vitamin\s*c/i] },
+];
+
+let files = []; // { id, file, status, data, error }
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const fileItems = document.getElementById('fileItems');
+const processBtn = document.getElementById('processBtn');
+const clearBtn = document.getElementById('clearBtn');
+const results = document.getElementById('results');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => {
+  addFiles(e.target.files);
+  fileInput.value = '';
+});
+
+function addFiles(fileListRaw) {
+  const pdfs = Array.from(fileListRaw).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  pdfs.forEach(file => {
+    files.push({ id: crypto.randomUUID(), file, status: 'pending', data: null, error: null });
+  });
+  renderFileList();
+  updateButtons();
+}
+
+function renderFileList() {
+  if (files.length === 0) {
+    fileList.style.display = 'none';
+    return;
+  }
+  fileList.style.display = 'block';
+  fileItems.innerHTML = files.map(f => {
+    let statusHtml = '';
+    if (f.status === 'pending') statusHtml = '<span class="status load">Menunggu</span>';
+    else if (f.status === 'loading') statusHtml = '<span class="status load">Memproses…</span>';
+    else if (f.status === 'ok') statusHtml = '<span class="status ok">✓ OK</span>';
+    else if (f.status === 'error') statusHtml = `<span class="status err" title="${escapeHtml(f.error || '')}">✗ Gagal</span>`;
+    return `<div class="file-item">
+      <span class="name">${escapeHtml(f.file.name)}</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        ${statusHtml}
+        <button class="remove-btn" data-id="${f.id}" title="Hapus">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+  fileItems.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      files = files.filter(f => f.id !== btn.dataset.id);
+      renderFileList();
+      updateButtons();
+      results.classList.remove('show');
+    });
+  });
+}
+
+function updateButtons() {
+  processBtn.disabled = files.length === 0;
+}
+
+clearBtn.addEventListener('click', () => {
+  files = [];
+  renderFileList();
+  updateButtons();
+  results.classList.remove('show');
+  fileInput.value = '';
+});
+
+processBtn.addEventListener('click', async () => {
+  processBtn.disabled = true;
+  processBtn.textContent = '⏳ Memproses…';
+  results.classList.remove('show');
+
+  for (const f of files) {
+    f.status = 'loading';
+    f.data = null;
+    f.error = null;
+    renderFileList();
+    try {
+      const text = await extractPdfText(f.file);
+      const data = parseNutrition(text);
+      if (Object.values(data).every(v => v === null)) {
+        throw new Error('Data gizi tidak ditemukan dalam PDF ini.');
+      }
+      f.data = data;
+      f.status = 'ok';
+    } catch (err) {
+      f.error = err.message || 'Terjadi kesalahan.';
+      f.status = 'error';
+    }
+    renderFileList();
+  }
+
+  renderResults();
+  processBtn.disabled = false;
+  processBtn.textContent = '⚙️ Proses & Hitung Rata-rata';
+});
+
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    let lastY = null;
+    let line = '';
+    const items = content.items.filter(it => it.str !== undefined);
+    for (const item of items) {
+      const y = item.transform ? item.transform[5] : null;
+      if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) {
+        fullText += line + '\n';
+        line = '';
+      }
+      line += item.str + ' ';
+      lastY = y;
+    }
+    fullText += line + '\n';
+  }
+  return fullText;
+}
+
+function parseNutrition(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const result = {};
+  NUTRIENTS.forEach(n => result[n.key] = null);
+
+  const consumed = new Set();
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+
+    for (const n of NUTRIENTS) {
+      if (consumed.has(n.key)) continue;
+      if (!n.patterns.some(p => p.test(line))) continue;
+
+      const nums = extractNumbers(line);
+      if (nums.length === 0) continue;
+
+      // Untuk "Vit C", sering muncul "Vit C (mg) 75 6,489" → ambil angka pertama
+      // Untuk "Energi (kcal) 2400 660,8428" → ambil angka pertama
+      // Strategi: ambil angka pertama yang >= 0
+      const val = nums[0];
+      if (val !== null && !isNaN(val)) {
+        result[n.key] = val;
+        consumed.add(n.key);
+      }
+    }
+  }
+  return result;
+}
+
+function extractNumbers(line) {
+  // Normalisasi: hilangkan pemisah ribuan Indonesia (titik) hanya jika diikuti 3 digit dan bukan desimal
+  // Contoh: "2.400" → 2400 ; "660,8428" → 660.8428
+  let s = line;
+
+  // Ganti koma desimal menjadi titik
+  s = s.replace(/(\d),(\d)/g, '$1.$2');
+
+  // Hapus titik yang merupakan pemisah ribuan (diikuti tepat 3 digit lalu bukan digit)
+  s = s.replace(/(\d)\.(?=\d{3}(?:\D|$))/g, '$1');
+
+  const matches = s.match(/\d+(?:\.\d+)?/g);
+  if (!matches) return [];
+  return matches.map(m => parseFloat(m)).filter(v => !isNaN(v));
+}
+
+function renderResults() {
+  const valid = files.filter(f => f.status === 'ok' && f.data);
+  const errors = files.filter(f => f.status === 'error');
+
+  results.classList.add('show');
+
+  document.getElementById('countInfo').textContent =
+    `${valid.length} file berhasil diproses` + (errors.length ? `, ${errors.length} gagal` : '');
+
+  const errContainer = document.getElementById('errorContainer');
+  if (errors.length) {
+    errContainer.innerHTML = errors.map(f =>
+      `<div class="error-box">⚠️ <strong>${escapeHtml(f.file.name)}</strong>: ${escapeHtml(f.error || '')}</div>`
+    ).join('');
+  } else {
+    errContainer.innerHTML = '';
+  }
+
+  if (valid.length === 0) {
+    document.getElementById('resultGrid').innerHTML =
+      '<div class="empty-warn">Tidak ada data valid untuk dihitung.</div>';
+    document.getElementById('detailBody').innerHTML = '';
+    return;
+  }
+
+  // Hitung rata-rata
+  const averages = {};
+  NUTRIENTS.forEach(n => {
+    const vals = valid.map(f => f.data[n.key]).filter(v => v !== null && !isNaN(v));
+    averages[n.key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  });
+
+  document.getElementById('resultGrid').innerHTML = NUTRIENTS.map(n => {
+    const val = averages[n.key];
+    return `<div class="result-card">
+      <div class="label">${n.label}</div>
+      <div class="value">${val === null ? '—' : formatNumber(val)} <span class="unit">${n.unit}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('detailBody').innerHTML = valid.map(f => {
+    return `<tr>
+      <td>${escapeHtml(f.file.name)}</td>
+      ${NUTRIENTS.map(n => {
+        const v = f.data[n.key];
+        return `<td class="num">${v === null ? '—' : formatNumber(v)}</td>`;
+      }).join('')}
+    </tr>`;
+  }).join('') + `<tr class="file-header">
+      <td><strong>Rata-rata</strong></td>
+      ${NUTRIENTS.map(n => {
+        const v = averages[n.key];
+        return `<td class="num"><strong>${v === null ? '—' : formatNumber(v)}</strong></td>`;
+      }).join('')}
+    </tr>`;
+}
+
+function formatNumber(v) {
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(v);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+</script>
+</body>
+</html>
