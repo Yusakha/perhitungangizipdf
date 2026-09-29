@@ -7,122 +7,65 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: #f0f4f8;
-    color: #1e293b;
-    padding: 24px;
-    min-height: 100vh;
-  }
+  body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f4f8; color: #1e293b; padding: 24px; min-height: 100vh; }
   .container { max-width: 1000px; margin: 0 auto; }
   h1 { font-size: 1.6rem; margin-bottom: 4px; color: #0f172a; }
   .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
-
-  .upload-area {
-    background: #fff;
-    border: 2px dashed #94a3b8;
-    border-radius: 12px;
-    padding: 36px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 20px;
-  }
-  .upload-area:hover, .upload-area.dragover {
-    border-color: #3b82f6;
-    background: #eff6ff;
-  }
+  .upload-area { background: #fff; border: 2px dashed #94a3b8; border-radius: 12px;
+    padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 20px; }
+  .upload-area:hover, .upload-area.dragover { border-color: #3b82f6; background: #eff6ff; }
   .upload-area input { display: none; }
   .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
   .upload-area p { color: #475569; font-size: 0.95rem; }
   .upload-area .small { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
-
-  .file-list {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  }
+  .file-list { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   .file-list h2 { font-size: 1rem; margin-bottom: 10px; color: #334155; }
-  .file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-bottom: 6px;
-    font-size: 0.88rem;
-  }
+  .file-item { display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; font-size: 0.88rem; }
   .file-item .name { color: #1e293b; word-break: break-all; }
   .file-item .status { font-size: 0.78rem; padding: 2px 8px; border-radius: 99px; white-space: nowrap; margin-left: 8px; }
   .status.ok { background: #dcfce7; color: #166534; }
   .status.err { background: #fee2e2; color: #991b1b; }
   .status.load { background: #fef9c3; color: #854d0e; }
-  .remove-btn {
-    background: none; border: none; color: #ef4444; cursor: pointer;
-    font-size: 1.1rem; padding: 0 6px; line-height: 1;
-  }
-
+  .remove-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 6px; }
   .actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-  button {
-    font-family: inherit;
-    font-size: 0.9rem;
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.15s;
-  }
+  button { font-family: inherit; font-size: 0.9rem; padding: 10px 20px; border-radius: 8px;
+    border: none; cursor: pointer; font-weight: 600; transition: all 0.15s; }
   .btn-primary { background: #3b82f6; color: #fff; }
   .btn-primary:hover:not(:disabled) { background: #2563eb; }
   .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
   .btn-secondary { background: #e2e8f0; color: #334155; }
   .btn-secondary:hover { background: #cbd5e1; }
-
-  .results {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    display: none;
-  }
+  .results { background: #fff; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: none; }
   .results.show { display: block; }
   .results h2 { font-size: 1.1rem; margin-bottom: 4px; }
   .results .count-info { font-size: 0.82rem; color: #64748b; margin-bottom: 16px; }
-
-  .result-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .result-card {
-    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px;
-  }
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 20px; }
+  .result-card { background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
   .result-card .label { font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
   .result-card .value { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 4px; }
   .result-card .unit { font-size: 0.85rem; color: #64748b; font-weight: 400; }
-
   table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-  th { background: #f8fafc; color: #475569; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; }
+  th { background: #f8fafc; color: #475569; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .file-header { background: #f1f5f9; font-weight: 600; }
-
   .empty-warn { color: #b45309; background: #fffbeb; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; }
   .error-box { color: #991b1b; background: #fef2f2; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; }
+  .debug-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;
+    font-size: 0.75rem; font-family: monospace; white-space: pre-wrap; max-height: 240px; overflow: auto;
+    margin-bottom: 16px; color: #475569; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>📊 Rata-rata Kandungan Gizi dari PDF</h1>
-  <p class="subtitle">Semua proses berjalan lokal di browser — file tidak diunggah ke server mana pun.</p>
+  <p class="subtitle">Semua proses berjalan lokal di browser — file tidak diunggah ke server.</p>
 
   <div class="upload-area" id="dropZone">
     <input type="file" id="fileInput" accept="application/pdf" multiple>
@@ -146,9 +89,10 @@
     <p class="count-info" id="countInfo"></p>
     <div id="errorContainer"></div>
     <div class="result-grid" id="resultGrid"></div>
-    <h2 style="font-size:1rem; margin-bottom:10px;">Rincian per File</h2>
+
+    <h2 style="font-size:1rem; margin: 16px 0 10px;">Rincian per File</h2>
     <div style="overflow-x:auto;">
-      <table id="detailTable">
+      <table>
         <thead>
           <tr>
             <th>File</th>
@@ -162,6 +106,11 @@
         <tbody id="detailBody"></tbody>
       </table>
     </div>
+
+    <details style="margin-top:18px;">
+      <summary style="cursor:pointer;font-size:0.85rem;color:#475569;">🔍 Lihat teks yang terbaca (debug)</summary>
+      <div id="debugContainer" style="margin-top:10px;"></div>
+    </details>
   </div>
 </div>
 
@@ -169,15 +118,21 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// Kebutuhan AKG sebagai patokan untuk memotong prefix pada string gabungan
 const NUTRIENTS = [
-  { key: 'energi',  label: 'Energi',  unit: 'kcal', patterns: [/energi/i, /energy/i] },
-  { key: 'protein', label: 'Protein', unit: 'g',    patterns: [/protein/i] },
-  { key: 'lemak',   label: 'Lemak',   unit: 'g',    patterns: [/lemak/i, /fat/i] },
-  { key: 'kh',      label: 'KH',      unit: 'g',    patterns: [/^kh$/i, /karbohidrat/i, /carbohydrate/i] },
-  { key: 'vitc',    label: 'Vit C',   unit: 'mg',   patterns: [/vit\s*c/i, /vitamin\s*c/i] },
+  { key: 'energi',  label: 'Energi',  unit: 'kcal', pattern: /energi/i,
+    kebutuhan: 2400, alt: [2000, 2500, 2650, 2100, 2200, 2300] },
+  { key: 'protein', label: 'Protein', unit: 'g',    pattern: /protein/i,
+    kebutuhan: 70,   alt: [65, 60, 75, 55, 50] },
+  { key: 'lemak',   label: 'Lemak',   unit: 'g',    pattern: /lemak/i,
+    kebutuhan: 80,   alt: [75, 70, 85, 65, 60] },
+  { key: 'kh',      label: 'KH',      unit: 'g',    pattern: /(^|\s)KH(\s|$)|karbohidrat|carbohydrate/i,
+    kebutuhan: 350,  alt: [300, 400, 375, 325, 275] },
+  { key: 'vitc',    label: 'Vit C',   unit: 'mg',   pattern: /vit\.?\s*c|vitamin\s*c/i,
+    kebutuhan: 75,   alt: [90, 100, 80, 70, 65] },
 ];
 
-let files = []; // { id, file, status, data, error }
+let files = [];
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -191,29 +146,21 @@ dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  addFiles(e.dataTransfer.files);
+  e.preventDefault(); dropZone.classList.remove('dragover'); addFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change', e => {
-  addFiles(e.target.files);
-  fileInput.value = '';
-});
+fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
 
 function addFiles(fileListRaw) {
-  const pdfs = Array.from(fileListRaw).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  const pdfs = Array.from(fileListRaw).filter(f =>
+    f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
   pdfs.forEach(file => {
-    files.push({ id: crypto.randomUUID(), file, status: 'pending', data: null, error: null });
+    files.push({ id: crypto.randomUUID(), file, status: 'pending', data: null, error: null, rawText: '' });
   });
-  renderFileList();
-  updateButtons();
+  renderFileList(); updateButtons();
 }
 
 function renderFileList() {
-  if (files.length === 0) {
-    fileList.style.display = 'none';
-    return;
-  }
+  if (files.length === 0) { fileList.style.display = 'none'; return; }
   fileList.style.display = 'block';
   fileItems.innerHTML = files.map(f => {
     let statusHtml = '';
@@ -232,46 +179,35 @@ function renderFileList() {
   fileItems.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       files = files.filter(f => f.id !== btn.dataset.id);
-      renderFileList();
-      updateButtons();
-      results.classList.remove('show');
+      renderFileList(); updateButtons(); results.classList.remove('show');
     });
   });
 }
 
-function updateButtons() {
-  processBtn.disabled = files.length === 0;
-}
+function updateButtons() { processBtn.disabled = files.length === 0; }
 
 clearBtn.addEventListener('click', () => {
-  files = [];
-  renderFileList();
-  updateButtons();
-  results.classList.remove('show');
+  files = []; renderFileList(); updateButtons(); results.classList.remove('show');
   fileInput.value = '';
 });
 
 processBtn.addEventListener('click', async () => {
-  processBtn.disabled = true;
-  processBtn.textContent = '⏳ Memproses…';
+  processBtn.disabled = true; processBtn.textContent = '⏳ Memproses…';
   results.classList.remove('show');
 
   for (const f of files) {
-    f.status = 'loading';
-    f.data = null;
-    f.error = null;
+    f.status = 'loading'; f.data = null; f.error = null; f.rawText = '';
     renderFileList();
     try {
       const text = await extractPdfText(f.file);
+      f.rawText = text;
       const data = parseNutrition(text);
       if (Object.values(data).every(v => v === null)) {
         throw new Error('Data gizi tidak ditemukan dalam PDF ini.');
       }
-      f.data = data;
-      f.status = 'ok';
+      f.data = data; f.status = 'ok';
     } catch (err) {
-      f.error = err.message || 'Terjadi kesalahan.';
-      f.status = 'error';
+      f.error = err.message || 'Terjadi kesalahan.'; f.status = 'error';
     }
     renderFileList();
   }
@@ -281,6 +217,9 @@ processBtn.addEventListener('click', async () => {
   processBtn.textContent = '⚙️ Proses & Hitung Rata-rata';
 });
 
+/* ============================================================
+   EKSTRAKSI TEKS PDF — pisahkan item per baris (Y berubah)
+   ============================================================ */
 async function extractPdfText(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -290,84 +229,139 @@ async function extractPdfText(file) {
     const content = await page.getTextContent();
     let lastY = null;
     let line = '';
-    const items = content.items.filter(it => it.str !== undefined);
-    for (const item of items) {
+    for (const item of content.items) {
+      if (item.str === undefined) continue;
       const y = item.transform ? item.transform[5] : null;
-      if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) {
-        fullText += line + '\n';
+      if (lastY !== null && y !== null && Math.abs(y - lastY) > 3) {
+        fullText += line.trim() + '\n';
         line = '';
       }
-      line += item.str + ' ';
+      line += item.str;
       lastY = y;
     }
-    fullText += line + '\n';
+    if (line.trim()) fullText += line.trim() + '\n';
+    fullText += '\n';
   }
   return fullText;
 }
 
+/* ============================================================
+   PARSING GIZI — versi robust untuk string gabungan
+   ============================================================ */
 function parseNutrition(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const result = {};
   NUTRIENTS.forEach(n => result[n.key] = null);
 
-  const consumed = new Set();
-
   for (const line of lines) {
-    const lower = line.toLowerCase();
-
     for (const n of NUTRIENTS) {
-      if (consumed.has(n.key)) continue;
-      if (!n.patterns.some(p => p.test(line))) continue;
+      if (result[n.key] !== null) continue;
+      if (!n.pattern.test(line)) continue;
 
-      const nums = extractNumbers(line);
-      if (nums.length === 0) continue;
-
-      // Untuk "Vit C", sering muncul "Vit C (mg) 75 6,489" → ambil angka pertama
-      // Untuk "Energi (kcal) 2400 660,8428" → ambil angka pertama
-      // Strategi: ambil angka pertama yang >= 0
-      const val = nums[0];
-      if (val !== null && !isNaN(val)) {
-        result[n.key] = val;
-        consumed.add(n.key);
+      // Pastikan tidak konflik dengan label gizi lain
+      let conflict = false;
+      for (const other of NUTRIENTS) {
+        if (other.key === n.key) continue;
+        if (other.pattern.test(line)) { conflict = true; break; }
       }
+      if (conflict) continue;
+
+      const value = extractActualValue(line, n);
+      if (value !== null) result[n.key] = value;
     }
   }
   return result;
 }
 
-function extractNumbers(line) {
-  // Normalisasi: hilangkan pemisah ribuan Indonesia (titik) hanya jika diikuti 3 digit dan bukan desimal
-  // Contoh: "2.400" → 2400 ; "660,8428" → 660.8428
-  let s = line;
+/**
+ * Ambil nilai kandungan aktual dari baris.
+ *
+ * Format umum yang kita hadapi:
+ *   "Energi (kcal)2400660,8428"       → 2400 | 660,8428
+ *   "Protein (g)7034,02749"           → 70   | 34,02749
+ *   "Lemak (g)8012,17215"             → 80   | 12,17215
+ *   "KH (g)35071,56220"               → 350  | 71,56220
+ *   "Vit C (mg)756,489"               → 75   | 6,489
+ *
+ * Strategi:
+ * 1. Ambil semua deret angka dari baris (setelah normalisasi desimal).
+ * 2. Cari angka yang DIAWALI persis dengan nilai kebutuhan (patokan).
+ *    Contoh: "2400660" dimulai dengan "2400" → sisanya "660" = kandungan.
+ * 3. Kalau tidak ketemu, cari angka yang diawali nilai alt (variasi kebutuhan).
+ * 4. Fallback: ambil angka kedua jika ada, kalau tidak ada ambil pertama.
+ */
+function extractActualValue(line, nutrient) {
+  // Normalisasi: koma desimal → titik, titik ribuan dibuang
+  let s = line
+    .replace(/(\d),(\d)/g, '$1.$2')          // 660,84 → 660.84
+    .replace(/(\d)\.(?=\d{3}(?:\D|$))/g, '$1'); // 2.400 → 2400
 
-  // Ganti koma desimal menjadi titik
-  s = s.replace(/(\d),(\d)/g, '$1.$2');
+  // Ambil semua angka (sebagai string mentah dulu, supaya bisa cek prefix)
+  const rawNumbers = s.match(/\d+(?:\.\d+)?/g);
+  if (!rawNumbers || rawNumbers.length === 0) return null;
 
-  // Hapus titik yang merupakan pemisah ribuan (diikuti tepat 3 digit lalu bukan digit)
-  s = s.replace(/(\d)\.(?=\d{3}(?:\D|$))/g, '$1');
+  // Kumpulan kandidat nilai kebutuhan (patokan)
+  const candidates = [nutrient.kebutuhan, ...(nutrient.alt || [])]
+    .filter(v => v != null)
+    .sort((a, b) => String(b).length - String(a).length); // coba yang paling panjang dulu
 
-  const matches = s.match(/\d+(?:\.\d+)?/g);
-  if (!matches) return [];
-  return matches.map(m => parseFloat(m)).filter(v => !isNaN(v));
+  // Strategi 1: cari angka yang diawali nilai kebutuhan
+  for (const raw of rawNumbers) {
+    // Buang titik desimal dulu untuk cek prefix
+    const integerPart = raw.split('.')[0];
+    for (const k of candidates) {
+      const kStr = String(k);
+      if (integerPart.startsWith(kStr) && integerPart.length > kStr.length) {
+        // Sisanya adalah kandungan aktual
+        const rest = integerPart.slice(kStr.length);
+        // Gabung dengan bagian desimal jika ada
+        const decimalPart = raw.includes('.') ? '.' + raw.split('.')[1] : '';
+        const val = parseFloat(rest + decimalPart);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    }
+  }
+
+  // Strategi 2: cari dua angka terpisah di baris (jika ada)
+  // misal: "Energi (kcal) 2400 660,84"
+  if (rawNumbers.length >= 2) {
+    // Ambil angka kedua sebagai kandidat
+    const second = parseFloat(rawNumbers[1]);
+    if (!isNaN(second) && second > 0) return second;
+  }
+
+  // Strategi 3: fallback → ambil angka pertama yang > 0
+  const first = parseFloat(rawNumbers[0]);
+  if (!isNaN(first) && first > 0) return first;
+
+  return null;
 }
 
+/* ============================================================
+   RENDER HASIL
+   ============================================================ */
 function renderResults() {
   const valid = files.filter(f => f.status === 'ok' && f.data);
   const errors = files.filter(f => f.status === 'error');
 
   results.classList.add('show');
-
   document.getElementById('countInfo').textContent =
     `${valid.length} file berhasil diproses` + (errors.length ? `, ${errors.length} gagal` : '');
 
   const errContainer = document.getElementById('errorContainer');
-  if (errors.length) {
-    errContainer.innerHTML = errors.map(f =>
-      `<div class="error-box">⚠️ <strong>${escapeHtml(f.file.name)}</strong>: ${escapeHtml(f.error || '')}</div>`
-    ).join('');
-  } else {
-    errContainer.innerHTML = '';
-  }
+  errContainer.innerHTML = errors.length
+    ? errors.map(f => `<div class="error-box">⚠️ <strong>${escapeHtml(f.file.name)}</strong>: ${escapeHtml(f.error || '')}</div>`).join('')
+    : '';
+
+  const debugContainer = document.getElementById('debugContainer');
+  debugContainer.innerHTML = files.map(f => {
+    const t = (f.rawText || '').slice(0, 2000);
+    const parsed = f.data ? JSON.stringify(f.data, null, 2) : '(gagal)';
+    return `<div style="margin-bottom:10px;"><strong>${escapeHtml(f.file.name)}</strong>
+      <div class="debug-box">${escapeHtml(t || '(kosong)')}</div>
+      <div class="debug-box"><strong>Hasil parsing:</strong>\n${escapeHtml(parsed)}</div>
+    </div>`;
+  }).join('');
 
   if (valid.length === 0) {
     document.getElementById('resultGrid').innerHTML =
@@ -376,7 +370,6 @@ function renderResults() {
     return;
   }
 
-  // Hitung rata-rata
   const averages = {};
   NUTRIENTS.forEach(n => {
     const vals = valid.map(f => f.data[n.key]).filter(v => v !== null && !isNaN(v));
@@ -391,15 +384,15 @@ function renderResults() {
     </div>`;
   }).join('');
 
-  document.getElementById('detailBody').innerHTML = valid.map(f => {
-    return `<tr>
+  document.getElementById('detailBody').innerHTML = valid.map(f => `
+    <tr>
       <td>${escapeHtml(f.file.name)}</td>
       ${NUTRIENTS.map(n => {
         const v = f.data[n.key];
         return `<td class="num">${v === null ? '—' : formatNumber(v)}</td>`;
       }).join('')}
-    </tr>`;
-  }).join('') + `<tr class="file-header">
+    </tr>`).join('') + `
+    <tr class="file-header">
       <td><strong>Rata-rata</strong></td>
       ${NUTRIENTS.map(n => {
         const v = averages[n.key];
